@@ -7,6 +7,7 @@ Test scprit
 
 """
 
+import os, argparse
 import numpy as np
 import cv2
 
@@ -19,10 +20,20 @@ from helper import init_gpu
 # set gpu id with "0", "1", "2"
 init_gpu("0")
 
+
+ap = argparse.ArgumentParser()
+ap.add_argument('-i', '--image', required=True,
+                help = 'path to input image')
+ap.add_argument('-od', '--output-dir', default='output',
+                help='output directory')
+ap.add_argument('--debug', default=False, action='store_true',
+                help='turn on debug mode')
+args = ap.parse_args()
+
+if not os.path.exists(args.output_dir):
+    os.makedirs(args.output_dir)
+
 # PATH
-path_test = './TestImage/'
-name_read = 'BlurryTest1.png'
-name_save = 'TestOutput.png'
 path_weights = './ModelSave/DeblurSHC19ConvLayers.hdf5'
 
 # input image dimensions
@@ -48,13 +59,15 @@ def main():
     model.load_weights(path_weights, by_name=True)
 
     # test
-    x = cv2.imread(path_test + name_read, cv2.IMREAD_GRAYSCALE) # Read as gray image
+    x = cv2.imread(args.image, cv2.IMREAD_GRAYSCALE) # Read as gray image
     x = x.reshape(x.shape[0], x.shape[1], num_of_dim) / 255.0
 
     pred = model.predict(np.expand_dims(x, axis=0))
 
     pred = pred.reshape(x.shape[0] - kernel_crop, x.shape[1] - kernel_crop, num_of_dim)
-    cv2.imwrite(path_test + name_save, pred * 255.0)
+    outfilename = os.path.join(args.output_dir, os.path.basename(args.image)[:-4]+'_final.jpg')
+    cv2.imwrite( outfilename, pred * 255.0)
+    print('Saved to file {}'.format(outfilename))
 
 if __name__ == '__main__':
     main()
